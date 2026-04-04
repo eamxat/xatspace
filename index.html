@@ -1,454 +1,880 @@
 <!DOCTYPE html>
-<!-- CODIGO CREADO POR EAM96 (2026) -->
+<!-- CODIGO CREADO POR EAM96 -->
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xat Gradients</title>
-    <!-- Favicon añadido -->
+    <title>Xat Cities</title>
+    <!-- Favicon -->
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/eamxat/Images/refs/heads/main/favicon-16x16.png">
     <style>
         :root {
-            /* Paleta por defecto (Ocean) */
-            --c1: #001f3f;
-            --c2: #0074d9;
-            --c3: #7fdbff;
+            /* MODO DÍA (Valores por defecto) */
+            --sky-top: #6ab0ff;
+            --sky-bottom: #e0f6ff;
+            
+            --bg-build: #7a9ebf; /* Edificios de fondo */
+            --mg-build: #527598; /* Edificios medios */
+            --fg-build: #2c445e; /* Edificios frontales */
+            
+            --win-day: #94b5d6;  /* Ventanas apagadas */
+            --win-night: #ffebb5; /* Añadido por completitud para modo noche */
+            
+            --sun-opacity: 1;
+            --moon-opacity: 0;
+            --sun-y: 0vh;
+            --moon-y: 60vh; /* Luna escondida bajo los edificios */
+            
+            --star-opacity: 0;
+            
+            /* Ajustes para las nubes con imagen */
+            --cloud-opacity: 0.85;
+            --cloud-filter: grayscale(0%) brightness(1) drop-shadow(0 15px 15px rgba(0,0,0,0.05));
+            --bird-opacity: 1;
+        }
+
+        /* MODO NOCHE (Override global al activar el checkbox oculto) */
+        body:has(#dn-toggle:checked) {
+            --sky-top: #060814;
+            --sky-bottom: #1a2245;
+            
+            --bg-build: #111521;
+            --mg-build: #0a0d14;
+            --fg-build: #030406;
+            
+            --sun-opacity: 0;
+            --moon-opacity: 1;
+            --sun-y: 60vh; /* Sol escondido bajo los edificios */
+            --moon-y: 0vh;
+            
+            --star-opacity: 1;
+            
+            /* Nubes (Blanco y negro) y pájaros en la noche */
+            --cloud-opacity: 0.15;
+            --cloud-filter: grayscale(100%) brightness(0.2) drop-shadow(0 10px 10px rgba(0,0,0,0.5));
+            --bird-opacity: 0;
         }
 
         body {
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #030408; 
+            background-color: var(--sky-top);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        /* Ocultar todos los inputs lógicos */
-        input[type="checkbox"],
-        input[type="radio"] {
+        /* Ocultar inputs lógicos */
+        input[type="checkbox"] {
             display: none;
         }
 
         /* ========================================================
-           MOTOR DE FLUIDO (CSS PURO)
+           ESCENA PRINCIPAL
            ======================================================== */
-        #fluid-container {
+        .scene {
             position: fixed;
-            top: 0;
-            left: 0;
+            top: 0; left: 0;
             width: 100vw;
             height: 100vh;
+            background: linear-gradient(to bottom, var(--sky-top) 0%, var(--sky-bottom) 100%);
+            transition: background 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            z-index: 1;
+            --current-win: var(--win-day);
+        }
+
+        body:has(#dn-toggle:checked) .scene {
+            --current-win: var(--win-night);
+        }
+
+        /* Astros (Sol y Luna Sincronizados Perfectamente) */
+        .celestial-sun, .celestial-moon {
+            position: absolute;
+            top: 10vh; right: 12vw;
+            width: 140px; height: 140px;
+            transition: transform 2.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 2.5s ease;
+            z-index: 2;
+        }
+
+        .celestial-sun {
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FFEFBA, #FFFFFF);
+            box-shadow: 0 0 40px 15px rgba(255, 215, 0, 0.4), 0 0 100px 35px rgba(255, 215, 0, 0.2);
+            opacity: var(--sun-opacity);
+            transform: translateY(var(--sun-y));
+        }
+
+        .celestial-moon {
+            /* Imagen externa sin efectos internos */
+            background-image: url('https://i.imgur.com/9dBMA6A.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            
+            /* Resplandor exterior mediante drop-shadow */
+            filter: drop-shadow(0 0 20px rgba(180, 210, 255, 0.4)) 
+                    drop-shadow(0 0 50px rgba(180, 210, 255, 0.2));
+            
+            opacity: var(--moon-opacity);
+            transform: translateY(var(--moon-y));
+            border: none;
+            outline: none;
+        }
+
+        /* ========================================================
+           SISTEMA DE ESTRELLAS REALISTAS
+           ======================================================== */
+        .stars-container {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            opacity: var(--star-opacity);
+            transition: opacity 1.5s ease;
             z-index: 1;
             pointer-events: none;
-            overflow: hidden;
-            background-color: var(--c1);
-            transition: background-color 1s ease;
-            /* El desenfoque masivo fusiona los "blobs" creando el fluido */
-            filter: blur(60px); 
         }
 
-        .blob {
+        .star-layer {
             position: absolute;
-            border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
-            animation: fluid-morph infinite alternate ease-in-out;
-            transition: background-color 1s ease;
-            opacity: 0.95;
-            mix-blend-mode: screen;
-        }
-
-        .blob-1 {
-            width: 85vw;
-            height: 85vw;
-            background-color: var(--c2);
-            top: -20vh;
-            left: -10vw;
-            animation-duration: 9s;
-            animation-delay: 0s;
-        }
-
-        .blob-2 {
-            width: 95vw;
-            height: 95vw;
-            background-color: var(--c3);
-            bottom: -30vh;
-            right: -20vw;
-            animation-duration: 12s;
-            animation-delay: -2s;
-        }
-
-        .blob-3 {
-            width: 75vw;
-            height: 75vw;
-            background-color: var(--c1);
-            top: 40vh;
-            left: 30vw;
-            animation-duration: 10s;
-            animation-delay: -5s;
-        }
-        
-        .blob-4 {
-            width: 110vw;
-            height: 110vw;
-            background-color: var(--c2);
-            top: -40vh;
-            right: -10vw;
-            animation-duration: 14s;
-            animation-delay: -8s;
-        }
-
-        @keyframes fluid-morph {
-            0% {
-                transform: translate(0, 0) scale(0.9) rotate(0deg);
-                border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
-            }
-            33% {
-                transform: translate(25vw, 15vh) scale(1.2) rotate(120deg);
-                border-radius: 70% 30% 20% 80% / 60% 20% 80% 40%;
-            }
-            66% {
-                transform: translate(-20vw, 25vh) scale(0.8) rotate(240deg);
-                border-radius: 20% 80% 70% 30% / 30% 70% 40% 60%;
-            }
-            100% {
-                transform: translate(10vw, -20vh) scale(1.1) rotate(360deg);
-                border-radius: 30% 70% 50% 50% / 50% 60% 40% 50%;
-            }
-        }
-
-        /* ========================================================
-           LÓGICA CSS (INTERACTIVIDAD)
-           ======================================================== */
-        
-        /* Paletas */
-        #pal-ocean:checked ~ #fluid-container { --c1: #001f3f; --c2: #0074d9; --c3: #7fdbff; }
-        #pal-magma:checked ~ #fluid-container { --c1: #2a0800; --c2: #b22222; --c3: #ff8c00; }
-        #pal-cyber:checked ~ #fluid-container { --c1: #0d0221; --c2: #ff007f; --c3: #00f0ff; }
-        #pal-forest:checked ~ #fluid-container { --c1: #002b18; --c2: #007f5f; --c3: #aacc00; }
-        #pal-sunset:checked ~ #fluid-container { --c1: #15062a; --c2: #91165b; --c3: #ff8822; }
-
-        /* Activar Paleta Visualmente en la UI */
-        #pal-ocean:checked ~ #main-panel .lbl-ocean,
-        #pal-magma:checked ~ #main-panel .lbl-magma,
-        #pal-cyber:checked ~ #main-panel .lbl-cyber,
-        #pal-forest:checked ~ #main-panel .lbl-forest,
-        #pal-sunset:checked ~ #main-panel .lbl-sunset {
-            transform: scale(1.3);
-            border-color: #fff;
-        }
-
-        /* Toggle Panel Visibility */
-        #toggle-panel:not(:checked) ~ #main-panel {
-            max-width: 0;
-            opacity: 0;
-            pointer-events: none;
-            padding: 0;
-            border-width: 0;
-        }
-        
-        #toggle-panel:not(:checked) ~ #mini-open-btn {
-            display: flex;
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        #toggle-panel:checked ~ #mini-open-btn {
-            display: none;
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        /* ========================================================
-           INTERFAZ DE USUARIO (GLASSMORPHISM)
-           ======================================================== */
-        #mini-open-btn {
-            position: fixed;
-            top: 65px;
-            left: 0;
-            width: 34px;
-            height: 34px;
-            background: rgba(15, 15, 15, 0.95);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #fff;
-            border-radius: 6px;
-            cursor: pointer;
-            justify-content: center;
-            align-items: center;
-            font-size: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
-            z-index: 2147483647;
-            user-select: none;
-            transition: background 0.2s, opacity 0.3s;
-        }
-
-        #mini-open-btn:hover {
-            background: rgba(45, 45, 45, 1);
-        }
-
-        #main-panel {
-            position: fixed; 
-            top: 65px; 
-            left: 0; 
-            width: max-content;  
-            height: 34px;   
-            box-sizing: border-box; 
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 0 10px 0 15px; 
-            background: rgba(15, 15, 15, 0.95);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 6px;
-            transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease, padding 0.4s;
-            opacity: 1;
-            max-width: calc(100vw - 20px); 
-            overflow-x: auto;
-            overflow-y: hidden; 
-            white-space: nowrap;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
-            scrollbar-width: none; 
-            z-index: 2147483647; 
-        }
-
-        #main-panel::-webkit-scrollbar {
-            display: none; 
-        }
-
-        .palette-btn {
-            width: 20px;
-            height: 20px;
+            top: 0; left: 0;
+            background: transparent;
             border-radius: 50%;
-            border: 2px solid rgba(255, 255, 255, 0.4);
-            cursor: pointer;
-            transition: transform 0.2s, border-color 0.2s;
-            flex-shrink: 0;
-            display: inline-block;
         }
 
-        .palette-btn:hover {
-            transform: scale(1.1);
-            border-color: rgba(255, 255, 255, 0.8);
+        .stars-xs {
+            width: 1px; height: 1px;
+            box-shadow: 
+                2vw 5vh #fff, 4vw 22vh #fff, 6vw 48vh #fff, 8vw 15vh #fff, 10vw 62vh #fff, 12vw 8vh #fff, 14vw 35vh #fff, 16vw 70vh #fff, 
+                18vw 2vh #fff, 20vw 42vh #fff, 22vw 18vh #fff, 24vw 55vh #fff, 26vw 30vh #fff, 28vw 85vh #fff, 30vw 12vh #fff, 32vw 45vh #fff, 
+                34vw 65vh #fff, 36vw 25vh #fff, 38vw 5vh #fff, 40vw 38vh #fff, 42vw 75vh #fff, 44vw 20vh #fff, 46vw 52vh #fff, 48vw 10vh #fff, 
+                50vw 35vh #fff, 52vw 68vh #fff, 54vw 28vh #fff, 56vw 3vh #fff, 58vw 48vh #fff, 60vw 80vh #fff, 62vw 15vh #fff, 64vw 58vh #fff, 
+                66vw 32vh #fff, 68vw 8vh #fff, 70vw 45vh #fff, 72vw 72vh #fff, 74vw 22vh #fff, 76vw 5vh #fff, 78vw 38vh #fff, 80vw 65vh #fff, 
+                82vw 12vh #fff, 84vw 50vh #fff, 86vw 28vh #fff, 88vw 85vh #fff, 90vw 18vh #fff, 92vw 42vh #fff, 94vw 75vh #fff, 96vw 8vh #fff, 
+                98vw 35vh #fff, 1vw 55vh #fff, 5vw 32vh #fff, 9vw 78vh #fff, 15vw 50vh #fff, 19vw 10vh #fff, 25vw 65vh #fff, 29vw 22vh #fff, 
+                35vw 82vh #fff, 39vw 15vh #fff, 45vw 60vh #fff, 49vw 25vh #fff, 55vw 88vh #fff, 59vw 12vh #fff, 65vw 52vh #fff, 69vw 30vh #fff, 
+                75vw 78vh #fff, 79vw 40vh #fff, 85vw 10vh #fff, 89vw 62vh #fff, 95vw 25vh #fff, 99vw 58vh #fff;
+            animation: twinkle-1 6s infinite ease-in-out;
         }
 
-        .palette-label {
-            color: #ddd;
-            font-size: 11px;
-            margin-right: 5px;
-            user-select: none;
-            font-weight: bold;
+        .stars-sm {
+            width: 1.5px; height: 1.5px;
+            box-shadow: 
+                3vw 12vh #fff, 7vw 35vh #fff, 11vw 58vh #fff, 15vw 8vh #fff, 19vw 42vh #fff, 23vw 75vh #fff, 27vw 18vh #fff, 31vw 52vh #fff, 
+                35vw 2vh #fff, 39vw 30vh #fff, 43vw 65vh #fff, 47vw 10vh #fff, 51vw 45vh #fff, 55vw 82vh #fff, 59vw 22vh #fff, 63vw 55vh #fff, 
+                67vw 5vh #fff, 71vw 38vh #fff, 75vw 70vh #fff, 79vw 15vh #fff, 83vw 48vh #fff, 87vw 85vh #fff, 91vw 28vh #fff, 95vw 62vh #fff, 
+                99vw 12vh #fff, 2vw 40vh #fff, 8vw 72vh #fff, 14vw 20vh #fff, 20vw 60vh #fff, 26vw 8vh #fff, 32vw 88vh #fff, 38vw 25vh #fff, 
+                44vw 78vh #fff, 50vw 18vh #fff, 56vw 68vh #fff, 62vw 32vh #fff, 68vw 10vh #fff, 74vw 52vh #fff, 80vw 22vh #fff, 86vw 65vh #fff, 
+                92vw 5vh #fff, 98vw 42vh #fff, 5vw 85vh #fff, 12vw 28vh #fff, 18vw 50vh #fff, 25vw 15vh #fff, 34vw 60vh #fff, 41vw 8vh #fff, 
+                48vw 35vh #fff, 54vw 92vh #fff, 61vw 25vh #fff, 69vw 48vh #fff, 76vw 80vh #fff, 84vw 12vh #fff, 89vw 55vh #fff, 96vw 30vh #fff;
+            animation: twinkle-2 4.5s infinite ease-in-out 1s;
         }
 
-        #close-btn {
-            margin-left: auto; 
-            position: sticky;
-            right: 0;
-            z-index: 10;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            color: #fff;
-            transition: background 0.2s, transform 0.2s;
-            flex-shrink: 0; 
+        .stars-md {
+            width: 2px; height: 2px;
+            box-shadow: 
+                6vw 18vh #fff, 14vw 45vh #fff, 24vw 8vh #fff, 33vw 65vh #fff, 42vw 22vh #fff, 52vw 75vh #fff, 61vw 12vh #fff, 70vw 48vh #fff, 
+                81vw 5vh #fff, 90vw 35vh #fff, 97vw 82vh #fff, 9vw 55vh #fff, 18vw 25vh #fff, 28vw 85vh #fff, 38vw 15vh #fff, 48vw 52vh #fff, 
+                58vw 28vh #fff, 68vw 88vh #fff, 78vw 42vh #fff, 88vw 10vh #fff, 4vw 70vh #fff, 22vw 38vh #fff, 36vw 5vh #fff, 46vw 80vh #fff, 
+                56vw 18vh #fff, 66vw 60vh #fff, 76vw 25vh #fff, 86vw 68vh #fff, 94vw 20vh #fff, 2vw 28vh #fff;
+            animation: twinkle-3 3s infinite ease-in-out 2s;
         }
 
-        #close-btn:hover {
-            background: rgba(255, 255, 255, 0.25);
-            transform: scale(1.05);
+        .stars-lg {
+            width: 2.5px; height: 2.5px;
+            box-shadow: 
+                12vw 30vh #fff, 28vw 15vh #fff, 45vw 68vh #fff, 62vw 8vh #fff, 78vw 45vh #fff, 92vw 22vh #fff, 
+                8vw 80vh #fff, 35vw 50vh #fff, 55vw 25vh #fff, 72vw 75vh #fff, 85vw 55vh #fff, 20vw 5vh #fff, 
+                40vw 88vh #fff, 68vw 32vh #fff, 98vw 10vh #fff;
+            animation: twinkle-4 1.5s infinite ease-in-out 0.5s;
         }
 
-        .control-group {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 11px; 
-            color: #ddd;
-            user-select: none;
-            height: 100%; 
-            flex-shrink: 0; 
-        }
-
-        .separator {
-            width: 1px;
-            height: 18px; 
-            background: rgba(255,255,255,0.25);
-            margin: 0 5px;
-            flex-shrink: 0;
-        }
-
-        .info-tag {
-            background: rgba(255,255,255,0.1);
-            padding: 2px 6px;
-            border-radius: 4px;
-            color: #aaa;
-            font-style: italic;
-        }
+        @keyframes twinkle-1 { 0%, 100% { opacity: 0.1; } 50% { opacity: 0.9; } }
+        @keyframes twinkle-2 { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+        @keyframes twinkle-3 { 0%, 100% { opacity: 0.1; } 50% { opacity: 0.8; } }
+        @keyframes twinkle-4 { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 
         /* ========================================================
-           NUEVO: ESTILOS PARA EL LOGO DISCRETO
+           NUBES FOTOREALISTAS
            ======================================================== */
-        .logo-inferior-discreto {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000; /* Asegura que esté sobre el fondo, pero no tapa modales */
-            display: block;
+        .clouds-img-container {
+            position: absolute; top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 3;
+            transition: opacity 1.5s ease, visibility 1.5s;
         }
 
-        .logo-inferior-img {
-            height: 25px; /* Tamaño prudente */
-            width: auto;
-            opacity: 0.05; /* Extremadamente baja como se solicitó */
-            transition: opacity 0.3s ease; /* Transición suave solo en la opacidad */
-            display: block;
-            border: none;
-        }
-
-        .logo-inferior-img:hover {
-            opacity: 0.4; /* Opacidad aumentada al hacer hover */
-        }
-
-        /* ========================================================
-           NUEVAS MEJORAS: RESTRICCIONES Y AJUSTES VISUALES
-           ======================================================== */
-        
-        /* 1. Ajuste de controles retraídos (Transiciones suaves) */
-        #toggle-panel:checked ~ #mini-open-btn {
-            display: flex !important; 
+        body:has(#dn-toggle:checked) .clouds-img-container {
+            opacity: 0;
             visibility: hidden;
         }
-        
-        #toggle-panel:not(:checked) ~ #mini-open-btn {
-            display: flex !important;
+
+        .cloud-img {
+            position: absolute;
+            background-image: url('https://i.imgur.com/wnGcbk7.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: var(--cloud-opacity);
+            filter: var(--cloud-filter);
+            will-change: transform;
+        }
+
+        /* NUBES DIURNAS OPTIMIZADAS */
+        .c-img-1 { left: -50vw; top: 5vh;  width: 35vw; height: 18vh; animation: drift 70s linear infinite -10s; opacity: calc(var(--cloud-opacity) * 0.9); }
+        .c-img-2 { left: 100vw; top: 15vh; width: 45vw; height: 22vh; animation: drift-rtl 85s linear infinite -40s; opacity: calc(var(--cloud-opacity) * 0.7); }
+        .c-img-3 { left: -60vw; top: -2vh; width: 55vw; height: 28vh; animation: drift 100s linear infinite -60s; opacity: calc(var(--cloud-opacity) * 0.6); }
+        .c-img-4 { left: 100vw; top: 25vh; width: 30vw; height: 15vh; animation: drift-rtl 60s linear infinite -15s; opacity: calc(var(--cloud-opacity) * 0.85); }
+        .c-img-5 { left: -45vw; top: 20vh; width: 40vw; height: 20vh; animation: drift 80s linear infinite -30s; opacity: calc(var(--cloud-opacity) * 0.75); }
+        .c-img-6 { left: 100vw; top: 8vh;  width: 50vw; height: 25vh; animation: drift-rtl 95s linear infinite -70s; opacity: calc(var(--cloud-opacity) * 0.65); }
+        .c-img-7 { left: -35vw; top: 32vh; width: 28vw; height: 14vh; animation: drift 55s linear infinite -5s;  opacity: calc(var(--cloud-opacity) * 0.95); }
+        .c-img-8 { left: 100vw; top: -5vh; width: 38vw; height: 19vh; animation: drift-rtl 75s linear infinite -25s; opacity: calc(var(--cloud-opacity) * 0.8); }
+
+        /* NUBES EXCLUSIVAS DE NOCHE */
+        .night-clouds-container {
+            position: absolute; top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 3;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 1.5s ease, visibility 1.5s;
+        }
+
+        body:has(#dn-toggle:checked) .night-clouds-container {
+            opacity: 1;
             visibility: visible;
         }
 
-        /* 2. Bloqueo de interacción básico sin JS */
-        html, body {
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
+        .night-cloud {
+            position: absolute;
+            background-image: url('https://i.imgur.com/l6ozuVU.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.35;
+            will-change: transform;
         }
 
-        /* Evitar arrastre e interacción directa de imágenes */
-        img {
-            pointer-events: none;
-            -webkit-user-drag: none;
+        /* Instancias con direcciones alternadas */
+        .nc-1 { top: 8vh; left: -40vw; width: 25vw; height: 12vh; animation: drift 80s linear infinite; }
+        .nc-2 { top: 22vh; left: 100vw; width: 16vw; height: 8vh; animation: drift-rtl 90s linear infinite 10s; }
+        .nc-3 { top: 4vh; left: -50vw; width: 35vw; height: 16vh; animation: drift 110s linear infinite 5s; opacity: 0.25; }
+        .nc-4 { top: 15vh; left: 100vw; width: 22vw; height: 10vh; animation: drift-rtl 85s linear infinite 20s; }
+
+        @keyframes drift { 
+            0% { transform: translateX(0); } 
+            100% { transform: translateX(160vw); } 
         }
 
-        /* Mantener la funcionalidad de hover del logo al delegar el evento al enlace */
-        .logo-inferior-discreto:hover .logo-inferior-img {
-            opacity: 0.4;
+        @keyframes drift-rtl { 
+            0% { transform: translateX(0); } 
+            100% { transform: translateX(-160vw); } 
         }
 
         /* ========================================================
-           AJUSTE 1: INVERSIÓN DE ESTADO INICIAL (PANEL CERRADO)
+           SISTEMA DE PÁJAROS ANIMADOS (Solo Día)
            ======================================================== */
-        /* Se invierte la lógica del checkbox (que está 'checked' en HTML) 
-           para iniciar cerrado sin tener que alterar el HTML existente. */
+        .birds-container {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none;
+            opacity: var(--bird-opacity);
+            transition: opacity 1s ease;
+            z-index: 4;
+        }
+
+        .bird-group {
+            position: absolute;
+            animation: fly-across linear infinite;
+            will-change: transform;
+        }
+
+        .bird {
+            position: relative;
+            width: 16px; height: 10px;
+        }
+        .bird::before, .bird::after {
+            content: ''; position: absolute; top: 0; 
+            width: 10px; height: 8px;
+            border-top: 2px solid var(--fg-build);
+            border-radius: 50%;
+        }
+        .bird::before { 
+            left: 0; transform-origin: right center; 
+            animation: flap-left 0.4s infinite alternate ease-in-out; 
+        }
+        .bird::after { 
+            right: 0; transform-origin: left center; 
+            animation: flap-right 0.4s infinite alternate ease-in-out; 
+        }
+
+        @keyframes flap-left { 0% { transform: rotate(15deg); } 100% { transform: rotate(-40deg); } }
+        @keyframes flap-right { 0% { transform: rotate(-15deg); } 100% { transform: rotate(40deg); } }
+
+        .flock-1 { top: 25vh; left: -10vw; animation-duration: 35s; animation-delay: 2s; transform: scale(1); }
+        .flock-2 { top: 40vh; left: -10vw; animation-duration: 45s; animation-delay: 18s; transform: scale(0.6); }
+        .flock-3 { top: 18vh; left: -10vw; animation-duration: 25s; animation-delay: 8s; transform: scale(0.8); }
+
+        @keyframes fly-across { 
+            0% { transform: translateX(0vw) translateY(0) scale(var(--s, 1)); } 
+            25% { transform: translateX(30vw) translateY(-2vh) scale(var(--s, 1)); }
+            75% { transform: translateX(80vw) translateY(3vh) scale(var(--s, 1)); }
+            100% { transform: translateX(120vw) translateY(-1vh) scale(var(--s, 1)); } 
+        }
+
+        /* ========================================================
+           NUEVOS EVENTOS DINÁMICOS: GLOBO (DÍA)
+           ======================================================== */
+        .day-balloon-wrapper {
+            position: absolute;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 4;
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 1.5s ease, visibility 1.5s;
+        }
+
+        body:has(#dn-toggle:checked) .day-balloon-wrapper {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .day-balloon {
+            position: absolute;
+            width: clamp(45px, 5.5vw, 75px);
+            height: clamp(65px, 8vw, 110px);
+            background-image: url('https://i.ibb.co/27ms4qJW/a-balloonfx-40.webp');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            /* Ciclo dinámico maestro de 55s */
+            animation: float-balloon-dynamic 55s ease-in-out infinite; 
+            will-change: transform, opacity;
+        }
+
+        .day-balloon-inner {
+            width: 100%; height: 100%;
+            /* Balanceo y oscilación por viento natural */
+            animation: sway-balloon 8s ease-in-out infinite alternate;
+        }
+
+        @keyframes float-balloon-dynamic {
+            /* VUELO 1 */
+            0%   { transform: translate(15vw, 110vh) scale(1); opacity: 0; }
+            2%   { opacity: 1; }
+            20%  { opacity: 1; } 
+            22%  { transform: translate(15vw, -25vh) scale(1); opacity: 0; }
+            
+            /* GAP 1 */
+            40%  { transform: translate(70vw, 110vh) scale(1.2); opacity: 0; }
+            
+            /* VUELO 2 */
+            42%  { opacity: 1; }
+            60%  { opacity: 1; } 
+            62%  { transform: translate(70vw, -25vh) scale(1.2); opacity: 0; }
+            
+            /* GAP 2 */
+            76%  { transform: translate(40vw, 110vh) scale(0.85); opacity: 0; }
+            
+            /* VUELO 3 */
+            78%  { opacity: 1; }
+            96%  { opacity: 1; } 
+            98%  { transform: translate(40vw, -25vh) scale(0.85); opacity: 0; }
+            
+            /* GAP 3 */
+            100% { transform: translate(15vw, 110vh) scale(1); opacity: 0; }
+        }
+
+        @keyframes sway-balloon {
+            0%   { transform: rotate(-6deg) translateX(-1.5vw); }
+            100% { transform: rotate(6deg) translateX(1.5vw); }
+        }
+
+        /* ========================================================
+           NUEVOS EVENTOS DINÁMICOS: AVIÓN Y OVNI (NOCHE EXCLUSIVOS)
+           ======================================================== */
+        .night-air-wrapper {
+            position: absolute;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 4;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 1.5s ease, visibility 1.5s;
+        }
+
+        body:has(#dn-toggle:checked) .night-air-wrapper {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .night-airplane {
+            position: absolute;
+            top: 12vh;
+            width: clamp(60px, 6vw, 90px);
+            height: clamp(20px, 2vw, 30px);
+            background-image: url('https://i.imgur.com/pGr5IRf.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            animation: fly-airplane-sync 80s linear infinite;
+            will-change: transform, opacity;
+        }
+
+        .night-ufo {
+            position: absolute;
+            top: 25vh;
+            width: clamp(55px, 5.5vw, 85px);
+            height: clamp(25px, 2.5vw, 40px);
+            animation: fly-ufo-sync 80s linear infinite;
+            will-change: transform, opacity;
+        }
         
-        /* Estado inicial (checked): Panel oculto, Botón visible */
-        #toggle-panel:checked ~ #main-panel {
-            max-width: 0 !important;
-            opacity: 0 !important;
-            pointer-events: none !important;
-            padding: 0 !important;
-            border-width: 0 !important;
+        .night-ufo-inner {
+            width: 100%; height: 100%;
+            background-image: url('https://i.ibb.co/LD2nvcw9/a-saucer-80.webp');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            animation: bob-ufo 4s ease-in-out infinite alternate;
         }
-        #toggle-panel:checked ~ #mini-open-btn {
-            display: flex !important;
-            opacity: 1 !important;
-            visibility: visible !important;
-            pointer-events: auto !important;
+
+        @keyframes fly-airplane-sync {
+            0%   { transform: translateX(-20vw); opacity: 0; }
+            3%   { opacity: 1; }
+            45%  { opacity: 1; }
+            50%  { transform: translateX(120vw); opacity: 0; }
+            100% { transform: translateX(120vw); opacity: 0; }
         }
+
+        @keyframes fly-ufo-sync {
+            0%   { transform: translateX(120vw); opacity: 0; }
+            50%  { transform: translateX(120vw); opacity: 0; } 
+            53%  { opacity: 1; }
+            95%  { opacity: 1; }
+            100% { transform: translateX(-20vw); opacity: 0; }
+        }
+
+        @keyframes bob-ufo {
+            0%   { transform: translateY(-3px); }
+            100% { transform: translateY(3px); }
+        }
+
+        /* ========================================================
+           ARQUITECTURA DE LA CIUDAD (FIX FULLSCREEN CROP)
+           ======================================================== */
+        .cityscape {
+            position: absolute; 
+            bottom: 0; 
+            left: 50%;
+            transform: translateX(-50%);
+            /* Asegura que la imagen siempre cubra la pantalla sin achatarse ni cortarse verticalmente */
+            width: max(100vw, 160vh); 
+            z-index: 10; 
+            pointer-events: none;
+        }
+
+        .city-img {
+            width: 100%;
+            height: auto; /* Escala matemáticamente para nunca cortar la punta de los edificios */
+            display: block;
+            transition: opacity 1.5s ease;
+        }
+
+        .city-day { opacity: 1; }
         
-        /* Estado alterno (desmarcado al hacer click): Panel visible, Botón oculto */
-        #toggle-panel:not(:checked) ~ #main-panel {
-            max-width: calc(100vw - 20px) !important;
-            opacity: 1 !important;
-            pointer-events: auto !important;
-            padding: 0 10px 0 15px !important;
-            border-width: 1px !important;
+        .city-night { 
+            position: absolute; 
+            top: 0; left: 0; 
+            opacity: 0; 
         }
-        #toggle-panel:not(:checked) ~ #mini-open-btn {
-            display: none !important;
-            opacity: 0 !important;
-            visibility: hidden !important;
-            pointer-events: none !important;
+
+        body:has(#dn-toggle:checked) .city-day { opacity: 0; }
+        body:has(#dn-toggle:checked) .city-night { opacity: 1; }
+
+        /* ========================================================
+           LOGO XAT EXTERNO (Anclado Matemáticamente)
+           ======================================================== */
+        .xat-logo {
+            position: absolute;
+            bottom: 62%; /* Subido al 70% según solicitud */
+            right: 25.8%; /* Alineación perfecta con el edificio */
+            width: 4%; /* Escala de tamaño bloqueada a la imagen de la ciudad para no desfasarse jamás */
+            display: block;
+            z-index: 50; 
+            pointer-events: auto; /* Reactiva los clicks ignorados por cityscape */
         }
+
+        .xat-logo img {
+            width: 100%; 
+            height: auto;
+            display: block;
+            transition: transform 0.3s ease;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); 
+        }
+
+        /* Hover exclusivo para PC (ignorado en pantallas táctiles) */
+        @media (hover: hover) {
+            .xat-logo:hover img {
+                transform: scale(1.08);
+            }
+        }
+
+        /* ========================================================
+           SISTEMA DE TRÁFICO Y VEHÍCULOS
+           ======================================================== */
+        .traffic-container {
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 100vw; height: 15vh;
+            z-index: 11;
+            pointer-events: none;
+        }
+
+        .car {
+            position: absolute;
+            opacity: 0;
+            will-change: transform, opacity;
+        }
+
+        .car::before, .car::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            transition: opacity 1.5s ease, visibility 1.5s;
+        }
+
+        .car::before { opacity: 1; visibility: visible; }
+        body:has(#dn-toggle:checked) .car::before { opacity: 0; visibility: hidden; }
+
+        .car::after { opacity: 0; visibility: hidden; }
+        body:has(#dn-toggle:checked) .car::after { opacity: 1; visibility: visible; }
+
+        .car-left {
+            bottom: 6vh;
+            width: clamp(90px, 10vw, 140px);
+            height: clamp(40px, 4.5vw, 65px);
+            z-index: 11;
+        }
+        .car-left::before { background-image: url('https://i.imgur.com/eGXTsls.png'); }
+        .car-left::after { background-image: url('https://i.imgur.com/XQefBzx.png'); }
+
+        .car-right {
+            bottom: 1.5vh;
+            width: clamp(110px, 12vw, 160px);
+            height: clamp(45px, 5.5vw, 75px);
+            z-index: 12;
+        }
+        .car-right::before { background-image: url('https://i.imgur.com/9PnCMLK.png'); }
+        .car-right::after { background-image: url('https://i.imgur.com/37ETms4.png'); }
+
+        /* ========================================================
+           ILUMINACIÓN Y FAROS PROFESIONALES (SVG FILTER)
+           ======================================================== */
+        .headlight-svg {
+            position: absolute;
+            top: 60%;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 1.5s ease, visibility 1.5s;
+            pointer-events: none;
+            z-index: -1;
+            mix-blend-mode: screen; 
+            overflow: visible; 
+        }
+
+        body:has(#dn-toggle:checked) .headlight-svg {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .car-left .headlight-svg {
+            left: 60%; 
+            width: 45vw; 
+            height: 22vw;
+            transform: translateY(-50%);
+        }
+
+        .car-right .headlight-svg {
+            right: 60%; 
+            width: 50vw; 
+            height: 25vw;
+            transform: translateY(-50%) scaleX(-1);
+        }
+
+        @keyframes drive-ltr {
+            0%   { transform: translateX(-30vw); opacity: 0; }
+            10%  { opacity: 1; }
+            90%  { opacity: 1; } 
+            100% { transform: translateX(130vw); opacity: 0; }
+        }
+
+        @keyframes drive-rtl {
+            0%   { transform: translateX(130vw); opacity: 0; }
+            10%  { opacity: 1; }
+            90%  { opacity: 1; } 
+            100% { transform: translateX(-30vw); opacity: 0; }
+        }
+
+        .cl-1 { animation: drive-ltr 14s linear infinite; }
+        .cl-2 { animation: drive-ltr 14s linear infinite 7s; }
+
+        .cr-1 { animation: drive-rtl 12s linear infinite; }
+        .cr-2 { animation: drive-rtl 12s linear infinite 6s; }
+
+        /* ========================================================
+           PANEL DE CONTROL HORIZONTAL
+           ======================================================== */
+        #toggle-panel:not(:checked) ~ #main-panel { max-width: 0; opacity: 0; pointer-events: none; padding: 0; border-width: 0; }
+        #toggle-panel:not(:checked) ~ #mini-open-btn { display: flex; opacity: 1; pointer-events: auto; }
+        #toggle-panel:checked ~ #mini-open-btn { display: none; opacity: 0; pointer-events: none; }
+
+        #mini-open-btn {
+            position: fixed; top: 65px; left: 0; width: 34px; height: 34px;
+            background: rgba(15, 15, 15, 0.95); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2); color: #fff; border-radius: 6px;
+            cursor: pointer; justify-content: center; align-items: center;
+            font-size: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+            z-index: 2147483647; user-select: none; transition: background 0.2s, opacity 0.3s;
+        }
+
+        #mini-open-btn:hover { background: rgba(45, 45, 45, 1); }
+
+        #main-panel {
+            position: fixed; top: 65px; left: 0; width: max-content; height: 34px;
+            box-sizing: border-box; display: flex; align-items: center; gap: 15px;
+            padding: 0 10px 0 15px; background: rgba(15, 15, 15, 0.95); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px;
+            transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease, padding 0.4s;
+            opacity: 1; max-width: calc(100vw - 20px); overflow-x: auto; overflow-y: hidden; 
+            white-space: nowrap; box-shadow: 0 4px 15px rgba(0,0,0,0.8); scrollbar-width: none; 
+            z-index: 2147483647; 
+        }
+
+        #main-panel::-webkit-scrollbar { display: none; }
+
+        .control-group {
+            display: flex; align-items: center; gap: 8px; font-size: 11px; color: #ddd;
+            user-select: none; height: 100%; flex-shrink: 0; 
+        }
+
+        .label-text { font-weight: bold; color: #ddd; }
+
+        .toggle-track {
+            display: flex; align-items: center; justify-content: space-between;
+            width: 44px; height: 20px; background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 20px;
+            padding: 0 4px; cursor: pointer; position: relative; box-sizing: border-box;
+            transition: background 0.5s ease;
+        }
+
+        body:has(#dn-toggle:checked) .toggle-track { background: rgba(0, 0, 0, 0.6); border-color: rgba(255, 255, 255, 0.2); }
+
+        .toggle-icon { font-size: 10px; line-height: 1; z-index: 1; }
+
+        .toggle-thumb {
+            position: absolute; top: 2px; left: 2px; width: 14px; height: 14px;
+            background: #fff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+            transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1); z-index: 2;
+        }
+
+        #dn-toggle:checked ~ #main-panel .toggle-thumb { transform: translateX(24px); }
+
+        .separator { width: 1px; height: 18px; background: rgba(255,255,255,0.25); margin: 0 2px; flex-shrink: 0; }
+
+        .info-tag { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; color: #aaa; font-style: italic; }
+
+        #close-btn {
+            margin-left: auto; position: sticky; right: 0; width: 24px; height: 24px;
+            display: flex; justify-content: center; align-items: center;
+            background: rgba(255, 255, 255, 0.1); border-radius: 4px; cursor: pointer; 
+            font-size: 14px; font-weight: bold; color: #fff;
+            transition: background 0.2s, transform 0.2s; flex-shrink: 0; 
+        }
+
+        #close-btn:hover { background: rgba(255, 255, 255, 0.25); transform: scale(1.05); }
+
     </style>
 </head>
 <body>
 
-    <!-- INPUTS LÓGICOS OCULTOS (El "Cerebro" CSS) -->
+    <!-- LÓGICA OCULTA -->
     <input type="checkbox" id="toggle-panel" checked>
-    
-    <input type="radio" name="palette" id="pal-ocean" checked>
-    <input type="radio" name="palette" id="pal-magma">
-    <input type="radio" name="palette" id="pal-cyber">
-    <input type="radio" name="palette" id="pal-forest">
-    <input type="radio" name="palette" id="pal-sunset">
+    <input type="checkbox" id="dn-toggle">
 
-    <!-- BOTÓN PARA ABRIR PANEL (Aparece cuando toggle-panel NO está checked) -->
-    <label for="toggle-panel" id="mini-open-btn" title="Mostrar Panel de Controles">≡</label>
+    <!-- BOTÓN DE REAPERTURA -->
+    <label for="toggle-panel" id="mini-open-btn" title="Mostrar Panel">≡</label>
 
     <!-- PANEL PRINCIPAL -->
     <div id="main-panel">
         <div class="control-group">
-            <div class="palette-label">Colores:</div>
-            <label for="pal-ocean" class="palette-btn lbl-ocean" style="background: linear-gradient(135deg, #001f3f, #0074d9, #7fdbff);" title="Ocean"></label>
-            <label for="pal-magma" class="palette-btn lbl-magma" style="background: linear-gradient(135deg, #2a0800, #b22222, #ff8c00);" title="Magma"></label>
-            <label for="pal-cyber" class="palette-btn lbl-cyber" style="background: linear-gradient(135deg, #0d0221, #ff007f, #00f0ff);" title="Cyberpunk"></label>
-            <label for="pal-forest" class="palette-btn lbl-forest" style="background: linear-gradient(135deg, #002b18, #007f5f, #aacc00);" title="Forest"></label>
-            <label for="pal-sunset" class="palette-btn lbl-sunset" style="background: linear-gradient(135deg, #15062a, #91165b, #ff8822);" title="Sunset"></label>
+            <span class="label-text">Tiempo:</span>
+            <label for="dn-toggle" class="toggle-track" title="Alternar Día/Noche">
+                <span class="toggle-icon">☀️</span>
+                <span class="toggle-icon">🌙</span>
+                <div class="toggle-thumb"></div>
+            </label>
         </div>
-
         <div class="separator"></div>
-
         <div class="control-group">
             <span class="info-tag">Xat.com</span>
         </div>
-
-        <!-- BOTÓN DE CERRAR CONECTADO AL CHECKBOX DEL PANEL -->
         <label for="toggle-panel" id="close-btn" title="Ocultar controles">❯</label>
     </div>
 
-    <!-- EL "LIQUIDO" ANIMADO -->
-    <div id="fluid-container">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
-        <div class="blob blob-4"></div>
+    <!-- ESCENA CIUDAD -->
+    <div class="scene">
+        
+        <!-- ========================================================
+             LIBRERÍA DE FILTROS SVG (Global, oculto)
+             ======================================================== -->
+        <svg style="width:0; height:0; position:absolute; visibility:hidden;" aria-hidden="true" focusable="false">
+            <defs>
+                <filter id="beamBlur" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="20" />
+                </filter>
+                
+                <radialGradient id="beamGrad" cx="0%" cy="50%" r="100%">
+                    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9" />
+                    <stop offset="20%" stop-color="#fff5cc" stop-opacity="0.6" />
+                    <stop offset="50%" stop-color="#ffe885" stop-opacity="0.15" />
+                    <stop offset="80%" stop-color="#ffe885" stop-opacity="0" />
+                    <stop offset="100%" stop-color="#ffe885" stop-opacity="0" />
+                </radialGradient>
+            </defs>
+        </svg>
+
+        <!-- Cielo base -->
+        <div class="celestial-sun"></div>
+        <div class="celestial-moon"></div>
+
+        <!-- 1. Sistema de Estrellas (Noche) -->
+        <div class="stars-container">
+            <div class="star-layer stars-xs"></div>
+            <div class="star-layer stars-sm"></div>
+            <div class="star-layer stars-md"></div>
+            <div class="star-layer stars-lg"></div>
+        </div>
+        
+        <!-- 2. Nubes Fotorealistas (Día) -->
+        <div class="clouds-img-container">
+            <div class="cloud-img c-img-1"></div>
+            <div class="cloud-img c-img-2"></div>
+            <div class="cloud-img c-img-3"></div>
+            <div class="cloud-img c-img-4"></div>
+            <div class="cloud-img c-img-5"></div>
+            <div class="cloud-img c-img-6"></div>
+            <div class="cloud-img c-img-7"></div>
+            <div class="cloud-img c-img-8"></div>
+        </div>
+
+        <!-- 2.5 Nubes Fotorealistas (Noche) -->
+        <div class="night-clouds-container">
+            <div class="night-cloud nc-1"></div>
+            <div class="night-cloud nc-2"></div>
+            <div class="night-cloud nc-3"></div>
+            <div class="night-cloud nc-4"></div>
+        </div>
+
+        <!-- 3. Bandadas de Pájaros CSS (Día) -->
+        <div class="birds-container">
+            <div class="bird-group flock-1" style="--s: 1;">
+                <div class="bird" style="top: 0px; left: 0px;"></div>
+                <div class="bird" style="top: -15px; left: -20px;"></div>
+                <div class="bird" style="top: 15px; left: -25px;"></div>
+            </div>
+            <div class="bird-group flock-2" style="--s: 0.6;">
+                <div class="bird" style="top: 0px; left: 0px;"></div>
+                <div class="bird" style="top: 10px; left: -15px;"></div>
+            </div>
+            <div class="bird-group flock-3" style="--s: 0.8;">
+                <div class="bird" style="top: 0px; left: 0px;"></div>
+                <div class="bird" style="top: -20px; left: -30px;"></div>
+                <div class="bird" style="top: 10px; left: -40px;"></div>
+                <div class="bird" style="top: 25px; left: -20px;"></div>
+            </div>
+        </div>
+
+        <!-- 3.5 Globo Aerostático (Día - Evento Aleatorio) -->
+        <div class="day-balloon-wrapper">
+            <div class="day-balloon">
+                <div class="day-balloon-inner"></div>
+            </div>
+        </div>
+
+        <!-- 3.8 Avión y OVNI (Noche - Eventos Excluyentes y Sincronizados) -->
+        <div class="night-air-wrapper">
+            <!-- Avión (Aparece en la primera mitad del ciclo) -->
+            <div class="night-airplane"></div>
+            
+            <!-- OVNI (Aparece en la segunda mitad del ciclo) -->
+            <div class="night-ufo">
+                <div class="night-ufo-inner"></div>
+            </div>
+        </div>
+
+        <!-- Edificios (Imágenes ajustadas a proporción estricta para evitar recortes) -->
+        <div class="cityscape">
+            <img class="city-img city-day" src="https://i.imgur.com/y3TvGLg.png" alt="Ciudad de día">
+            <img class="city-img city-night" src="https://i.imgur.com/gvh1Czo.png" alt="Ciudad de noche">
+            
+            <!-- 5. Logo XAT (Agrupado en el cityscape y anclado con % matemáticos para fijarlo al edificio) -->
+            <a href="https://xat.com" target="_blank" rel="noopener noreferrer" class="xat-logo">
+                <img src="https://raw.githubusercontent.com/eamxat/Images/7af4ec4622f89c3c332964539fc5991e7a6050bd/xatlogo%20text2.svg" alt="XAT Logo">
+            </a>
+        </div>
+
+        <!-- 4. Sistema de Tráfico (Vehículos) -->
+        <div class="traffic-container">
+            <!-- Coches Carril Izquierdo (Alejado) -->
+            <div class="car car-left cl-1">
+                <svg class="headlight-svg" viewBox="0 0 800 400" preserveAspectRatio="none" overflow="visible">
+                    <ellipse cx="400" cy="200" rx="300" ry="100" fill="url(#beamGrad)" filter="url(#beamBlur)" />
+                </svg>
+            </div>
+            <div class="car car-left cl-2">
+                <svg class="headlight-svg" viewBox="0 0 800 400" preserveAspectRatio="none" overflow="visible">
+                    <ellipse cx="400" cy="200" rx="300" ry="100" fill="url(#beamGrad)" filter="url(#beamBlur)" />
+                </svg>
+            </div>
+
+            <!-- Coches Carril Derecho (Cercano) -->
+            <div class="car car-right cr-1">
+                <svg class="headlight-svg" viewBox="0 0 800 400" preserveAspectRatio="none" overflow="visible">
+                    <ellipse cx="400" cy="200" rx="300" ry="100" fill="url(#beamGrad)" filter="url(#beamBlur)" />
+                </svg>
+            </div>
+            <div class="car car-right cr-2">
+                <svg class="headlight-svg" viewBox="0 0 800 400" preserveAspectRatio="none" overflow="visible">
+                    <ellipse cx="400" cy="200" rx="300" ry="100" fill="url(#beamGrad)" filter="url(#beamBlur)" />
+                </svg>
+            </div>
+        </div>
     </div>
 
-    <!-- LOGO INFERIOR DISCRETO -->
-    <a href="https://xat.com" class="logo-inferior-discreto" target="_blank" rel="noopener noreferrer">
-        <img src="https://raw.githubusercontent.com/eamxat/Images/7af4ec4622f89c3c332964539fc5991e7a6050bd/xatlogo%20text2.svg" alt="xat" class="logo-inferior-img">
-    </a>
-
-    <!-- ========================================================
-         AJUSTE 2: BLOQUEO DE INTERACCIÓN Y DEVTOOLS
-         ======================================================== -->
+    <!-- Script de protección básica contra robo -->
     <script>
-    document.addEventListener('contextmenu', e => e.preventDefault());
+        // Bloquear click derecho (menú contextual)
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
 
-    document.addEventListener('keydown', function(e) {
-      if (
-        e.key === "F12" ||
-        (e.ctrlKey && e.shiftKey && ["I","J"].includes(e.key.toUpperCase())) ||
-        (e.ctrlKey && e.key.toUpperCase() === "U")
-      ) {
-        e.preventDefault();
-      }
-    });
+        // Bloquear teclas de desarrollador (F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+S)
+        document.addEventListener('keydown', function(e) {
+            if (
+                e.key === 'F12' || 
+                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) || 
+                (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.key === 'S' || e.key === 's'))
+            ) {
+                e.preventDefault();
+            }
+        });
     </script>
 </body>
 </html>
