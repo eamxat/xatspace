@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CODIGO CREADO POR EAM96 - OPTIMIZADO PARA MÓVIL Y MULTINAVEGADOR -->
+<!-- CODIGO CREADO POR EAM96 -->
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -59,7 +59,7 @@
             overflow: hidden;
             background-color: var(--sky-top);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            -webkit-tap-highlight-color: transparent;
+            -webkit-tap-highlight-color: transparent; /* Evita destello al tocar en móvil */
         }
 
         input[type="checkbox"] {
@@ -78,7 +78,7 @@
             transition: background 1.5s cubic-bezier(0.4, 0, 0.2, 1);
             overflow: hidden;
             z-index: 1;
-            -webkit-transform: translateZ(0);
+            -webkit-transform: translateZ(0); /* Forzar GPU */
             transform: translateZ(0);
         }
 
@@ -201,14 +201,13 @@
         @keyframes fly-ufo-sync { 0% { opacity: 0; } 50% { transform: translateX(120vw); opacity: 0; } 55% { opacity: 1; } 95% { opacity: 1; } 100% { transform: translateX(-20vw); opacity: 0; } }
 
         /* ========================================================
-           ARQUITECTURA Y LOGO (OPTIMIZADO PARA PANTALLA COMPLETA)
+           ARQUITECTURA Y LOGO (CROSS-BROWSER FIX)
            ======================================================== */
         .cityscape {
-            position: absolute; bottom: 0; left: 50%; 
-            transform: translateX(-50%);
-            width: max(100vw, 160vh); /* Asegura cobertura total sin cortes */
-            z-index: 10; 
-            pointer-events: none;
+            position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: max(100vw, 160vh); z-index: 10; pointer-events: none;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
         }
 
         .city-img {
@@ -222,81 +221,44 @@
         body:has(#dn-toggle:checked) .city-night { opacity: 1; }
 
         .xat-logo {
-            position: absolute; 
-            bottom: 70%; /* Bloqueado al edificio */
-            right: 25.8%; 
-            width: 4%; 
-            display: block;
-            z-index: 50; 
-            pointer-events: auto;
+            position: absolute; bottom: 62%; right: 25.8%; width: 4%; display: block;
+            z-index: 50; pointer-events: auto;
+            -webkit-transition: transform 0.3s ease;
             transition: transform 0.3s ease;
         }
         .xat-logo img { width: 100%; height: auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
         @media (hover: hover) { .xat-logo:hover { transform: scale(1.08); } }
 
-        /* ========================================================
-           SISTEMA DE TRÁFICO (ANCLADO A LA CIUDAD PARA MÓVIL)
-           ======================================================== */
-        .traffic-container { 
-            position: absolute; 
-            bottom: 0; left: 0; 
-            width: 100%; /* Sigue el ancho de la ciudad (max(100vw, 160vh)) */
-            height: 12%; /* Altura relativa a la ciudad para no perderse en móviles */
-            z-index: 11; 
-            pointer-events: none; 
-        }
-
-        .car { 
-            position: absolute; 
-            opacity: 0; 
-            will-change: transform, opacity;
-            /* Escala de los coches bloqueada al ancho del mapa */
-            width: 8%; 
-            height: 40%;
-        }
-
+        /* Vehículos y Faros */
+        .traffic-container { position: absolute; bottom: 0; left: 0; width: 100vw; height: 15vh; z-index: 11; pointer-events: none; }
+        .car { position: absolute; opacity: 0; will-change: transform, opacity; }
         .car::before, .car::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-size: contain; background-repeat: no-repeat; background-position: center; transition: opacity 1.5s ease; }
         .car::before { opacity: 1; }
         body:has(#dn-toggle:checked) .car::before { opacity: 0; }
         .car::after { opacity: 0; }
         body:has(#dn-toggle:checked) .car::after { opacity: 1; }
 
-        /* Carril Izquierdo (Alejado) */
-        .car-left { bottom: 45%; z-index: 11; }
+        .car-left { bottom: 6vh; width: clamp(90px, 10vw, 140px); height: 50px; }
         .car-left::before { background-image: url('https://i.imgur.com/eGXTsls.png'); }
         .car-left::after { background-image: url('https://i.imgur.com/XQefBzx.png'); }
         
-        /* Carril Derecho (Cercano) */
-        .car-right { bottom: 5%; z-index: 12; }
+        .car-right { bottom: 1.5vh; width: clamp(110px, 12vw, 160px); height: 60px; }
         .car-right::before { background-image: url('https://i.imgur.com/9PnCMLK.png'); }
         .car-right::after { background-image: url('https://i.imgur.com/37ETms4.png'); }
 
-        /* Faros SVG */
         .headlight-svg {
             position: absolute; top: 60%; opacity: 0; visibility: hidden;
             transition: opacity 1.5s ease, visibility 1.5s; pointer-events: none; z-index: -1;
             mix-blend-mode: screen; overflow: visible;
         }
         body:has(#dn-toggle:checked) .headlight-svg { opacity: 1; visibility: visible; }
-        .car-left .headlight-svg { left: 60%; width: 300%; height: 200%; transform: translateY(-50%); }
-        .car-right .headlight-svg { right: 60%; width: 300%; height: 200%; transform: translateY(-50%) scaleX(-1); }
+        .car-left .headlight-svg { left: 60%; width: 45vw; height: 22vw; transform: translateY(-50%); }
+        .car-right .headlight-svg { right: 60%; width: 50vw; height: 25vw; transform: translateY(-50%) scaleX(-1); }
 
-        /* Animaciones basadas en el ancho del contenedor (0% a 100% de la ciudad escalada) */
-        @keyframes drive-ltr { 
-            0% { transform: translateX(-15%); opacity: 0; } 
-            10% { opacity: 1; } 
-            90% { opacity: 1; } 
-            100% { transform: translateX(115%); opacity: 0; } 
-        }
-        @keyframes drive-rtl { 
-            0% { transform: translateX(115%); opacity: 0; } 
-            10% { opacity: 1; } 
-            90% { opacity: 1; } 
-            100% { transform: translateX(-15%); opacity: 0; } 
-        }
-
-        .cl-1 { animation: drive-ltr 16s linear infinite; }
-        .cr-1 { animation: drive-rtl 14s linear infinite; }
+        @keyframes drive-ltr { 0% { transform: translateX(-30vw); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateX(130vw); opacity: 0; } }
+        @keyframes drive-rtl { 0% { transform: translateX(130vw); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateX(-30vw); opacity: 0; } }
+        .cl-1 { animation: drive-ltr 14s linear infinite; }
+        .cr-1 { animation: drive-rtl 12s linear infinite; }
 
         /* Panel de Control */
         #main-panel {
@@ -378,28 +340,25 @@
             <div class="night-ufo"></div>
         </div>
 
-        <!-- Ciudad y Tráfico agrupados para escalado perfecto en móvil -->
         <div class="cityscape">
             <img class="city-img city-day" src="https://i.imgur.com/y3TvGLg.png" alt="Día">
             <img class="city-img city-night" src="https://i.imgur.com/gvh1Czo.png" alt="Noche">
             
-            <!-- Logo Xat -->
             <a href="https://xat.com" target="_blank" rel="noopener noreferrer" class="xat-logo">
                 <img src="https://raw.githubusercontent.com/eamxat/Images/7af4ec4622f89c3c332964539fc5991e7a6050bd/xatlogo%20text2.svg" alt="XAT">
             </a>
+        </div>
 
-            <!-- Tráfico ahora dentro del contenedor cityscape para seguir los píxeles de la carretera -->
-            <div class="traffic-container">
-                <div class="car car-left cl-1">
-                    <svg class="headlight-svg" viewBox="0 0 800 400" preserveAspectRatio="none">
-                        <ellipse cx="400" cy="200" rx="300" ry="100" fill="url(#beamGrad)" filter="url(#beamBlur)" />
-                    </svg>
-                </div>
-                <div class="car car-right cr-1">
-                    <svg class="headlight-svg" viewBox="0 0 800 400" preserveAspectRatio="none">
-                        <ellipse cx="400" cy="200" rx="300" ry="100" fill="url(#beamGrad)" filter="url(#beamBlur)" />
-                    </svg>
-                </div>
+        <div class="traffic-container">
+            <div class="car car-left cl-1">
+                <svg class="headlight-svg" viewBox="0 0 800 400" preserveAspectRatio="none">
+                    <ellipse cx="400" cy="200" rx="300" ry="100" fill="url(#beamGrad)" filter="url(#beamBlur)" />
+                </svg>
+            </div>
+            <div class="car car-right cr-1">
+                <svg class="headlight-svg" viewBox="0 0 800 400" preserveAspectRatio="none">
+                    <ellipse cx="400" cy="200" rx="300" ry="100" fill="url(#beamGrad)" filter="url(#beamBlur)" />
+                </svg>
             </div>
         </div>
     </div>
