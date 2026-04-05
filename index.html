@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- CODIGO CREADO POR EAM96 -->
+<!-- CODIGO CREADO EXCLUSIVAMENTE CON HTML Y CSS PURO + SVG FILTERS (Con JS para control de eventos aleatorios) -->
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xat CIties</title>
+    <title>Ciudad Dinámica - Pure CSS</title>
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/eamxat/Images/refs/heads/main/favicon-16x16.png">
     <style>
@@ -740,15 +740,18 @@
             }
 
             /* ENCUADRE DE CÁMARA (Camera Framing): 
-               Eliminamos el scale destructivo para mantener las proporciones 1:1. */
+               Eliminamos el scale destructivo para mantener las proporciones 1:1. 
+               Desplazamos hacia abajo para sacar la calle y los coches del encuadre. */
             .cityscape {
+                bottom: -14vh; /* Empuja la calle fuera de la pantalla visible */
                 transform: translateX(-48%); /* Ajuste horizontal fino para centrar el bloque principal de edificios */
                 transform-origin: bottom center;
             }
 
-            /* Elevamos el tráfico para que coincida con la calle a escala original */
+            /* Mantenemos el tráfico alineado con la calle, por lo que también queda fuera de encuadre 
+               sin ser eliminado ni modificado en su lógica o animación. */
             .traffic-container {
-                bottom: 11vh; 
+                bottom: -14vh; /* Mismo valor que cityscape para que queden ocultos abajo */
                 transform: none; /* Quitamos reducción de tamaño */
             }
         }
