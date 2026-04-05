@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- CODIGO CREADO POR EAM96 -->
+<!-- CODIGO CREADO EXCLUSIVAMENTE CON HTML Y CSS PURO + SVG FILTERS (Con JS para control de eventos aleatorios) -->
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xat Cities</title>
+    <title>Ciudad Dinámica - Pure CSS</title>
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/eamxat/Images/refs/heads/main/favicon-16x16.png">
     <style>
@@ -101,7 +101,8 @@
             background: linear-gradient(135deg, #FFEFBA, #FFFFFF);
             box-shadow: 0 0 40px 15px rgba(255, 215, 0, 0.4), 0 0 100px 35px rgba(255, 215, 0, 0.2);
             opacity: var(--sun-opacity);
-            transform: translateY(var(--sun-y));
+            /* Ajuste de sol ligeramente a la derecha (+25px) sin romper la animacion Y */
+            transform: translate(25px, var(--sun-y));
         }
 
         .celestial-moon {
@@ -116,7 +117,8 @@
                     drop-shadow(0 0 50px rgba(180, 210, 255, 0.2));
             
             opacity: var(--moon-opacity);
-            transform: translateY(var(--moon-y));
+            /* Ajuste de luna ligeramente a la derecha (+25px) sin romper la animacion Y */
+            transform: translate(25px, var(--moon-y));
             border: none;
             outline: none;
         }
@@ -350,9 +352,12 @@
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
-            /* Ciclo dinámico maestro de 55s */
-            animation: float-balloon-dynamic 55s ease-in-out infinite; 
+            opacity: 0; /* Controlado por JS para la alta frecuencia */
             will-change: transform, opacity;
+        }
+
+        .day-balloon.js-fly {
+            animation: float-balloon-js 15s ease-in-out forwards;
         }
 
         .day-balloon-inner {
@@ -361,31 +366,11 @@
             animation: sway-balloon 8s ease-in-out infinite alternate;
         }
 
-        @keyframes float-balloon-dynamic {
-            /* VUELO 1 */
-            0%   { transform: translate(15vw, 110vh) scale(1); opacity: 0; }
-            2%   { opacity: 1; }
-            20%  { opacity: 1; } 
-            22%  { transform: translate(15vw, -25vh) scale(1); opacity: 0; }
-            
-            /* GAP 1 */
-            40%  { transform: translate(70vw, 110vh) scale(1.2); opacity: 0; }
-            
-            /* VUELO 2 */
-            42%  { opacity: 1; }
-            60%  { opacity: 1; } 
-            62%  { transform: translate(70vw, -25vh) scale(1.2); opacity: 0; }
-            
-            /* GAP 2 */
-            76%  { transform: translate(40vw, 110vh) scale(0.85); opacity: 0; }
-            
-            /* VUELO 3 */
-            78%  { opacity: 1; }
-            96%  { opacity: 1; } 
-            98%  { transform: translate(40vw, -25vh) scale(0.85); opacity: 0; }
-            
-            /* GAP 3 */
-            100% { transform: translate(15vw, 110vh) scale(1); opacity: 0; }
+        @keyframes float-balloon-js {
+            0%   { transform: translate(var(--startX, 15vw), 110vh) scale(var(--bScale, 1)); opacity: 0; }
+            10%  { opacity: 1; }
+            90%  { opacity: 1; }
+            100% { transform: translate(var(--startX, 15vw), -25vh) scale(var(--bScale, 1)); opacity: 0; }
         }
 
         @keyframes sway-balloon {
@@ -429,8 +414,12 @@
             top: 25vh;
             width: clamp(55px, 5.5vw, 85px);
             height: clamp(25px, 2.5vw, 40px);
-            animation: fly-ufo-sync 80s linear infinite;
+            opacity: 0; /* Controlado por JS para la alta frecuencia */
             will-change: transform, opacity;
+        }
+
+        .night-ufo.js-fly {
+            animation: fly-ufo-js 12s linear forwards;
         }
         
         .night-ufo-inner {
@@ -450,11 +439,10 @@
             100% { transform: translateX(120vw); opacity: 0; }
         }
 
-        @keyframes fly-ufo-sync {
+        @keyframes fly-ufo-js {
             0%   { transform: translateX(120vw); opacity: 0; }
-            50%  { transform: translateX(120vw); opacity: 0; } 
-            53%  { opacity: 1; }
-            95%  { opacity: 1; }
+            10%  { opacity: 1; }
+            90%  { opacity: 1; }
             100% { transform: translateX(-20vw); opacity: 0; }
         }
 
@@ -534,6 +522,44 @@
             pointer-events: none;
         }
 
+        /* -- Bicicleta Animada (Día) -- */
+        .bicycle-wrapper {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10; /* Detrás de los coches cercanos (11 y 12), frente al fondo (10) */
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 1.5s ease, visibility 1.5s;
+        }
+
+        body:has(#dn-toggle:checked) .bicycle-wrapper {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .bicycle {
+            position: absolute;
+            /* AJUSTE MANUAL ALTURA BICICLETA (Ej: entre 6.0vh y 9.0vh, o usando px fijos) */
+            bottom: 7vh; 
+            width: clamp(45px, 5vw, 75px); /* Escala más pequeña que coche */
+            height: clamp(35px, 4vw, 55px);
+            background-image: url('https://raw.githubusercontent.com/eamxat/Images/refs/heads/main/a_(transport)_40.webp');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            animation: ride-bike 25s linear infinite; /* Movimiento más lento que los coches */
+            will-change: transform, opacity;
+        }
+
+        @keyframes ride-bike {
+            0%   { transform: translateX(-15vw) scaleX(-1); opacity: 0; }
+            5%   { opacity: 1; }
+            85%  { opacity: 1; } /* Fade out anticipado antes del borde */
+            100% { transform: translateX(115vw) scaleX(-1); opacity: 0; }
+        }
+
+        /* -- Coches -- */
         .car {
             position: absolute;
             opacity: 0;
@@ -700,6 +726,76 @@
 
         #close-btn:hover { background: rgba(255, 255, 255, 0.25); transform: scale(1.05); }
 
+        /* ========================================================
+           CORRECCIONES RESPONSIVE MÓVIL (Android / iOS)
+           ======================================================== */
+        @media (max-width: 768px) {
+            body, .scene {
+                width: 100vw;
+                height: 100vh;
+                height: 100dvh; /* Evita recortes usando el viewport dinámico real en móviles */
+                overflow: hidden;
+                overflow-x: hidden; /* Garantiza que no haya desbordamiento horizontal */
+            }
+
+            /* Asegurar visibilidad de coches reajustando la posición y la escala */
+            .traffic-container {
+                bottom: 8vh; /* Elevar para que no los oculte la interfaz del sistema */
+                transform: scale(0.8); /* Escala si los coches son demasiado grandes en móviles */
+                transform-origin: bottom center;
+            }
+
+            /* Evita que la escena gigante tape visibilidad al usar un escalado con proporción */
+            .cityscape {
+                transform: translateX(-50%) scale(0.9);
+                transform-origin: bottom center;
+            }
+        }
+
+        /* CONTROL GLOBAL DE VISIBILIDAD (ZONAS DE SPAWN/DESPAWN) */
+        .fade-vehicle {
+            opacity: 0;
+            transition: opacity 1.4s cubic-bezier(0.4, 0, 0.2, 1); /* curva suave profesional */
+            will-change: opacity;
+        }
+
+        /* ACTIVO (visible) */
+        .fade-vehicle.visible {
+            opacity: 1;
+        }
+
+        /* ========================================================
+           SMILE EN BANCA (Solo Noche)
+           ======================================================== */
+        .smile-bench {
+            position: absolute;
+
+            /* AJUSTE FINO (alinear con banca) */
+            bottom: 34px;
+            left: 86px;
+
+            width: 38px;
+            height: auto;
+
+            pointer-events: none;
+            user-select: none;
+
+            opacity: 0;
+            transform: translateY(6px) scale(0.95);
+
+            transition: 
+                opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+                
+            z-index: 15; /* Asegura que quede visible sobre la acera */
+        }
+
+        /* SOLO NOCHE (Enlazado al checkbox oculto original) */
+        body:has(#dn-toggle:checked) .smile-bench {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
     </style>
 </head>
 <body>
@@ -819,6 +915,13 @@
             </div>
         </div>
 
+        <!-- 3.9 Smile en banca (Modo Noche) -->
+        <img 
+          src="https://raw.githubusercontent.com/eamxat/Images/refs/heads/main/a_(telescope)_40.webp" 
+          class="smile-bench"
+          alt="Telescopio en banca"
+        />
+
         <!-- Edificios (Imágenes ajustadas a proporción estricta para evitar recortes) -->
         <div class="cityscape">
             <img class="city-img city-day" src="https://i.imgur.com/y3TvGLg.png" alt="Ciudad de día">
@@ -832,6 +935,12 @@
 
         <!-- 4. Sistema de Tráfico (Vehículos) -->
         <div class="traffic-container">
+            
+            <!-- Bicicleta Animada (Alineada en la acera) -->
+            <div class="bicycle-wrapper">
+                <div class="bicycle"></div>
+            </div>
+
             <!-- Coches Carril Izquierdo (Alejado) -->
             <div class="car car-left cl-1">
                 <svg class="headlight-svg" viewBox="0 0 800 400" preserveAspectRatio="none" overflow="visible">
@@ -858,23 +967,162 @@
         </div>
     </div>
 
-    <!-- Script de protección básica contra robo -->
+    <!-- Script de protección y sistema dinámico de spawn (Globo/OVNI) -->
     <script>
-        // Bloquear click derecho (menú contextual)
-        document.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-        });
-
-        // Bloquear teclas de desarrollador (F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+S)
+        // --- 1. PROTECCIÓN BÁSICA CONTRA ROBO ---
+        document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
         document.addEventListener('keydown', function(e) {
             if (
                 e.key === 'F12' || 
                 (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) || 
                 (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.key === 'S' || e.key === 's'))
-            ) {
-                e.preventDefault();
-            }
+            ) { e.preventDefault(); }
         });
+
+        // --- 2. SISTEMA DE EVENTOS DINÁMICOS JS (Globo y OVNI) ---
+        // Se utiliza JS para cumplir estrictamente con los intervalos de evaluación (5-10s / 10-18s) 
+        // y la probabilidad exacta, manteniendo la animación procesada por CSS de forma natural.
+        (function() {
+            const balloon = document.querySelector('.day-balloon');
+            const ufo = document.querySelector('.night-ufo');
+            const airplane = document.querySelector('.night-airplane');
+
+            // Lógica para Globo
+            function runBalloonLogic() {
+                // Intervalo de evaluación: de 5 a 10 segundos
+                const delay = Math.random() * 5000 + 5000;
+                setTimeout(() => {
+                    // Probabilidad: ~85% (entre 80 y 90%)
+                    if (Math.random() <= 0.85) {
+                        // Varía ligeramente la posición y escala para mayor naturalidad
+                        const startX = 15 + Math.random() * 50; 
+                        const scale = 0.8 + Math.random() * 0.4;
+                        
+                        balloon.style.setProperty('--startX', `${startX}vw`);
+                        balloon.style.setProperty('--bScale', scale);
+                        
+                        // Añadir la clase para iniciar el vuelo
+                        balloon.classList.add('js-fly');
+                        
+                        // El vuelo dura exactamente 15s. Esperar a que desaparezca por completo para volver a evaluar.
+                        setTimeout(() => {
+                            balloon.classList.remove('js-fly');
+                            runBalloonLogic();
+                        }, 15000);
+                    } else {
+                        // Si falla la probabilidad, se vuelve a evaluar
+                        runBalloonLogic();
+                    }
+                }, delay);
+            }
+
+            // Lógica para OVNI
+            function runUFOLogic() {
+                // Intervalo de evaluación: de 10 a 18 segundos
+                const delay = Math.random() * 8000 + 10000;
+                setTimeout(() => {
+                    // Probabilidad: ~78% (entre 70 y 85%)
+                    if (Math.random() <= 0.78) {
+                        let isSafeToFly = true; 
+                        const anims = airplane.getAnimations();
+                        
+                        // Validar con exactitud el estado del ciclo del avión en CSS (80s).
+                        if (anims.length > 0 && anims[0].currentTime !== null) {
+                            const currentTime = anims[0].currentTime % 80000;
+                            // El avión es visible desde el ms 0 hasta el ms 40000.
+                            // El OVNI necesita 12000ms para cruzar la pantalla completo.
+                            // Restringimos el OVNI a salir SOLO cuando sepamos que terminará de volar antes de que el avión reaparezca.
+                            if (currentTime <= 40000 || currentTime >= 67000) {
+                                isSafeToFly = false;
+                            }
+                        }
+
+                        if (isSafeToFly) {
+                            ufo.classList.add('js-fly');
+                            // El vuelo dura 12s. Una vez termina, se remueve la clase y se retoma la evaluación.
+                            setTimeout(() => {
+                                ufo.classList.remove('js-fly');
+                                runUFOLogic();
+                            }, 12000);
+                            return; // Prevenir ciclo duplicado
+                        }
+                    }
+                    // Si falla la probabilidad o no es seguro por el avión, reevaluar.
+                    runUFOLogic();
+                }, delay);
+            }
+
+            // Arrancar los sistemas al inicio
+            runBalloonLogic();
+            runUFOLogic();
+
+            // --- 3. SISTEMA DE SPAWN/DESPAWN (Control de visibilidad) ---
+            const cars = document.querySelectorAll('.car');
+            const bike = document.querySelector('.bicycle');
+
+            // Añadir las clases base de forma programática (tal y como se requirió)
+            cars.forEach(car => car.classList.add('fade-vehicle'));
+            if (bike) bike.classList.add('fade-vehicle');
+
+            const FADE_ZONE = 120; // distancia de fade en px desde bordes
+
+            function updateCarVisibility(car) {
+                const rect = car.getBoundingClientRect();
+                const screenWidth = window.innerWidth;
+
+                let opacity = 1;
+
+                // Fade izquierda
+                if (rect.left < FADE_ZONE) {
+                    opacity = rect.left / FADE_ZONE;
+                }
+
+                // Fade derecha
+                if (rect.right > screenWidth - FADE_ZONE) {
+                    opacity = (screenWidth - rect.right) / FADE_ZONE;
+                }
+
+                opacity = Math.max(0, Math.min(1, opacity));
+
+                // Usamos 'important' para asegurar que sobreescriba la opacidad del @keyframes
+                car.style.setProperty('opacity', opacity, 'important');
+            }
+
+            function updateBikeVisibility(bike) {
+                const rect = bike.getBoundingClientRect();
+                const screenWidth = window.innerWidth;
+
+                const fadeStart = screenWidth * 0.85;
+                const fadeRange = screenWidth * 0.15;
+
+                let opacity = 1;
+
+                if (rect.left > fadeStart) {
+                    opacity = 1 - ((rect.left - fadeStart) / fadeRange);
+                }
+
+                if (rect.left < 60) {
+                    opacity = rect.left / 60;
+                }
+
+                opacity = Math.max(0, Math.min(1, opacity));
+
+                // Usamos 'important' para asegurar que sobreescriba la opacidad del @keyframes
+                bike.style.setProperty('opacity', opacity, 'important');
+            }
+
+            // Bucle del motor de renderizado para detectar frames
+            function monitorVehicles() {
+                cars.forEach(car => updateCarVisibility(car));
+                if (bike) updateBikeVisibility(bike);
+                
+                requestAnimationFrame(monitorVehicles); // Llamada frame a frame
+            }
+
+            // Iniciar el monitoreo espacial
+            requestAnimationFrame(monitorVehicles);
+
+        })();
     </script>
 </body>
 </html>
