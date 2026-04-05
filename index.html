@@ -770,8 +770,8 @@
         .smile-bench {
             position: absolute;
 
-            /* AJUSTE FINO (alinear con banca) */
-            bottom: 34px;
+            /* AJUSTE FINO (coordenadas fijas en píxeles dentro del contenedor) */
+            bottom: 56px;
             left: 86px;
 
             width: 38px;
@@ -915,17 +915,17 @@
             </div>
         </div>
 
-        <!-- 3.9 Smile en banca (Modo Noche) -->
-        <img 
-          src="https://raw.githubusercontent.com/eamxat/Images/refs/heads/main/a_(telescope)_40.webp" 
-          class="smile-bench"
-          alt="Telescopio en banca"
-        />
-
         <!-- Edificios (Imágenes ajustadas a proporción estricta para evitar recortes) -->
         <div class="cityscape">
             <img class="city-img city-day" src="https://i.imgur.com/y3TvGLg.png" alt="Ciudad de día">
             <img class="city-img city-night" src="https://i.imgur.com/gvh1Czo.png" alt="Ciudad de noche">
+            
+            <!-- 3.9 Smile en banca (Modo Noche) - Anclado en px al contenedor -->
+            <img 
+              src="https://raw.githubusercontent.com/eamxat/Images/refs/heads/main/a_(telescope)_40.webp" 
+              class="smile-bench"
+              alt="Telescopio en banca"
+            />
             
             <!-- 5. Logo XAT (Agrupado en el cityscape y anclado con % matemáticos para fijarlo al edificio) -->
             <a href="https://xat.com" target="_blank" rel="noopener noreferrer" class="xat-logo">
